@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/morgul-banner.png" alt="Morgul" width="100%" />
+  <img src="./assets/morgul-banner.png" alt="Morgul" width="100%" />
 </p>
 
 <h1 align="center">Morgul</h1>
