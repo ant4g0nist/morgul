@@ -195,13 +195,9 @@ ModuleNotFoundError: No module named 'morgul'
 **Solution:** Ensure you are using the correct Python environment and that Morgul is installed:
 
 ```bash
-pip install morgul
-```
-
-If you installed from source:
-
-```bash
-pip install -e .
+git clone https://github.com/ant4g0nist/Morgul.git
+cd Morgul
+uv sync
 ```
 
 Verify the installation:

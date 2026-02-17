@@ -7,12 +7,6 @@ This guide walks you through installing Morgul and its dependencies.
 - **Python 3.10+**
 - **LLDB** -- included with Xcode Command Line Tools on macOS, or available via the `lldb` package on Linux
 
-## Install via pip
-
-```bash
-pip install morgul
-```
-
 ## Install from source
 
 ```bash

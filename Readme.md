@@ -47,7 +47,9 @@ Most reverse engineering tools force a choice: write brittle LLDB scripts that b
 ## Quickstart
 
 ```bash
-pip install morgul
+git clone https://github.com/ant4g0nist/Morgul.git
+cd Morgul
+uv sync
 ```
 
 ```python
