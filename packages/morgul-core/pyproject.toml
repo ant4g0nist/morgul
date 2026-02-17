@@ -1,0 +1,23 @@
+[project]
+name = "morgul-core"
+version = "0.1.0"
+description = "Core SDK for Morgul: primitives, agent, session, orchestrator"
+requires-python = ">=3.10"
+dependencies = [
+    "morgul-bridge",
+    "morgul-llm",
+    "pydantic>=2.0",
+    "rich>=13.0",
+    "tomli>=2.0; python_version < '3.11'",
+]
+
+[tool.uv.sources]
+morgul-bridge = { workspace = true }
+morgul-llm = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/morgul"]

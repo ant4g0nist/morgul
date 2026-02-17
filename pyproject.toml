@@ -1,0 +1,40 @@
+[tool.uv.workspace]
+members = [
+    "packages/morgul-core",
+    "packages/morgul-bridge",
+    "packages/morgul-llm",
+]
+
+[dependency-groups]
+dev = [
+    "morgul-core",
+    "morgul-bridge",
+    "morgul-llm",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.8",
+    "pyright>=1.1",
+]
+
+[tool.uv.sources]
+morgul-core = { workspace = true }
+morgul-bridge = { workspace = true }
+morgul-llm = { workspace = true }
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+
+[tool.pyright]
+pythonVersion = "3.10"
+typeCheckingMode = "basic"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "lldb: tests that require a real LLDB installation (deselect with '-m not lldb')",
+]

@@ -1,0 +1,14 @@
+resources/
+.claude/
+.morgul/
+.pytest_cache/
+.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+morgul.toml
+.DS_Store
+*.dSYM/
