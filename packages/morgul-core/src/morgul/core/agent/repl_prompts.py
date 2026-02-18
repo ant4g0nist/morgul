@@ -23,17 +23,37 @@ You have a Python REPL with live access to the debugger. Write code in ```python
 ## Stdlib Available
 struct, binascii, json, re, collections, math
 
+## Sub-queries
+- llm_query(prompt, timeout=30.0) -> str — ask the LLM a sub-question from within your code
+- Limited to {llm_query_budget} calls per iteration — use judiciously
+- llm_query_batched(prompts, timeout=60.0) -> list[str] — concurrent sub-queries (max 5)
+- Good for: interpreting disassembly, classifying data, generating hypotheses
+{custom_tools_section}
 ## Rules
 - Write Python code in ```python blocks — it will be executed and you'll see the output
 - Variables persist across code blocks — build on previous computations
 - Use print() to see values — only printed output is visible to you
-- Call DONE("your findings summary") when finished
+- Call DONE("your findings summary") when finished with a string result
+- Call FINAL_VAR("variable_name") to return a structured variable as the result (dicts, lists, etc.)
 - `thread` and `frame` auto-refresh after each block (reflects current debugger state)
 - For raw LLDB commands: debugger.execute_command("bt").output
 
 ## Task
 {task}
 """
+
+def format_tools_section(tool_descriptions: list[tuple[str, str]]) -> str:
+    """Format custom tools for inclusion in the system prompt."""
+    if not tool_descriptions:
+        return ""
+    lines = ["\n## Custom Tools"]
+    for name, desc in tool_descriptions:
+        if desc:
+            lines.append(f"- `{name}` — {desc}")
+        else:
+            lines.append(f"- `{name}`")
+    return "\n".join(lines)
+
 
 REPL_NUDGE = "Write Python code in a ```python block to make progress on the task."
 

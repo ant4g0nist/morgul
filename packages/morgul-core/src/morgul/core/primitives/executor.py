@@ -26,6 +26,29 @@ logger = logging.getLogger(__name__)
 # Maximum characters of stdout to feed back.
 MAX_OUTPUT_CHARS = 20_000
 
+# Names that belong to the scaffold and must be restored after every exec().
+RESERVED_NAMES: frozenset[str] = frozenset({
+    "debugger", "target", "process", "thread", "frame",
+    "read_string", "read_pointer", "read_uint8", "read_uint16",
+    "read_uint32", "read_uint64", "search_memory",
+    "struct", "binascii", "json", "re", "collections", "math",
+    "print", "range", "len", "int", "str", "float", "bool",
+    "list", "dict", "tuple", "set", "bytes", "bytearray",
+    "hex", "oct", "bin", "abs", "min", "max", "sum",
+    "sorted", "reversed", "enumerate", "zip", "map", "filter",
+    "isinstance", "type", "hasattr", "getattr", "setattr",
+    "repr", "chr", "ord", "format", "round", "pow", "divmod",
+    "hash", "id", "dir", "vars", "globals", "locals", "any", "all", "next", "iter",
+    "slice", "Exception", "ValueError", "TypeError", "KeyError",
+    "IndexError", "AttributeError", "RuntimeError", "StopIteration",
+    "True", "False", "None", "__builtins__",
+})
+
+# Scaffold names that custom tools also cannot shadow.
+REPL_SCAFFOLD_NAMES: frozenset[str] = frozenset({
+    "DONE", "FINAL_VAR", "llm_query", "llm_query_batched",
+})
+
 
 def _truncate(text: str, limit: int = MAX_OUTPUT_CHARS) -> str:
     if len(text) <= limit:
@@ -53,6 +76,7 @@ class PythonExecutor:
         self.process = process
         self._execution_callback = execution_callback
         self.namespace = self._build_namespace()
+        self._scaffold: dict = {k: v for k, v in self.namespace.items() if k in RESERVED_NAMES}
 
     def _build_namespace(self) -> dict:
         """Build the persistent execution namespace with bridge objects."""
@@ -146,6 +170,8 @@ class PythonExecutor:
             "id": id,
             "dir": dir,
             "vars": vars,
+            "globals": globals,
+            "locals": locals,
             "any": any,
             "all": all,
             "next": next,
@@ -165,6 +191,45 @@ class PythonExecutor:
             "__builtins__": {},
         }
         return ns
+
+    def _restore_scaffold(self) -> None:
+        """Restore all scaffold entries in the namespace to their original values."""
+        for key, value in self._scaffold.items():
+            self.namespace[key] = value
+
+    def update_scaffold(self, name: str, value: object) -> None:
+        """Register a new scaffold entry (or update an existing one).
+
+        The entry is immediately set in the namespace **and** recorded in
+        ``_scaffold`` so that it will be restored after every ``exec()``.
+        """
+        self.namespace[name] = value
+        self._scaffold[name] = value
+
+    def inject_tools(self, tools: dict) -> list[tuple[str, str]]:
+        """Inject custom tools into the namespace as scaffold-protected entries.
+
+        Returns list of (name, description) for prompt integration.
+        Raises ValueError if any name conflicts with reserved/scaffold names.
+        """
+        forbidden = RESERVED_NAMES | REPL_SCAFFOLD_NAMES
+        descriptions: list[tuple[str, str]] = []
+        for name, value in tools.items():
+            if name in forbidden:
+                raise ValueError(f"Tool name {name!r} conflicts with reserved name")
+            # Support rich format: {"tool": callable, "description": "..."}
+            if isinstance(value, dict) and "tool" in value:
+                actual_value = value["tool"]
+                desc = value.get("description", "")
+            else:
+                actual_value = value
+                desc = ""
+            self.update_scaffold(name, actual_value)
+            # Auto-describe callables without explicit description
+            if not desc and callable(actual_value):
+                desc = f"callable({name})"
+            descriptions.append((name, desc))
+        return descriptions
 
     def _emit(self, event: ExecutionEvent) -> None:
         """Emit an execution event if a callback is registered."""
@@ -193,6 +258,7 @@ class PythonExecutor:
             succeeded = False
             stderr_buf.write(traceback.format_exc())
 
+        self._restore_scaffold()
         self.refresh()
 
         stdout = _truncate(stdout_buf.getvalue())
