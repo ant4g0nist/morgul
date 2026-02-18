@@ -47,9 +47,7 @@ Most reverse engineering tools force a choice: write brittle LLDB scripts that b
 ## Quickstart
 
 ```bash
-git clone https://github.com/ant4g0nist/Morgul.git
-cd Morgul
-uv sync
+pip install morgul
 ```
 
 ```python
@@ -409,8 +407,8 @@ with Morgul(config=config) as morgul:
     ┌─────────────────────────────────────────┐
     │              Morgul Bridge               │
     │                                         │
-    │            LLDB Python API               │
-    │         (process, target, frame, …)     │
+    │         MCP Server (lisa.py)             │
+    │            LLDB Python API              │
     └────────────────┬────────────────────────┘
                      │
                      ▼
@@ -429,7 +427,7 @@ with Morgul(config=config) as morgul:
 
 **Cache Layer** — Content-addressed cache of analysis results. Keyed on instruction + context content (not addresses), so ASLR and relocation don't invalidate results.
 
-**Morgul Bridge** — The low-level interface to the debugger. Wraps the LLDB Python API directly, exposing structured objects (`process`, `target`, `frame`, `thread`, `debugger`) and memory utilities that the upper layers consume.
+**Morgul Bridge** — The low-level interface to the debugger. Built on [lisa.py](https://github.com/ant4g0nist/lisa.py)'s MCP server. Exposes structured tool calls that the upper layers consume.
 
 ---
 
@@ -497,12 +495,10 @@ model = "claude-sonnet-4-20250514"  # recommended
 Features under consideration for future releases — none of these exist in the codebase today:
 
 - **Agent event streaming** — Stream agent reasoning in real time for live visibility into the observe/act/reason loop
-- **Vulnerability scanner** — A pattern-matching engine for sweeping binaries against known vulnerability signatures
 - **Custom tool registration** — A decorator API for registering domain-specific tools that the agent can autonomously invoke
 - **Morgul Cloud** — Hosted debug sandboxes on demand. Upload a binary, get an isolated container with LLDB + Morgul, analyze from anywhere
 - **Ghidra integration** — Headless decompilation as an additional context source for the context builder
 - **Pre-built signatures** — Ship pre-analyzed summaries for common system libraries (libc, Foundation, OpenSSL)
-- **Fuzzer integration** — Closed-loop fuzzer harness generation and crash triage
 
 ---
 
@@ -510,7 +506,7 @@ Features under consideration for future releases — none of these exist in the 
 
 Morgul wouldn't exist without these projects:
 
-- **[lisa.py](https://github.com/ant4g0nist/lisa.py)** — MCP integration for LLDB by [@ant4g0nist](https://github.com/ant4g0nist). The inspiration for Morgul's bridge design.
+- **[lisa.py](https://github.com/ant4g0nist/lisa.py)** — MCP integration for LLDB by [@ant4g0nist](https://github.com/ant4g0nist). The bridge that makes this possible.
 - **[Polar](https://github.com/ant4g0nist/polar)** — LLM plugin for LLDB by [@ant4g0nist](https://github.com/ant4g0nist). The proof that this idea works.
 - **[Stagehand](https://github.com/browserbase/stagehand)** — Browserbase's AI browser automation framework. The architectural blueprint.
 - **[LLDB](https://lldb.llvm.org/)** — The LLVM debugger. The engine under the hood.
