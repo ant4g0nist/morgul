@@ -269,10 +269,21 @@ class TestAsyncMorgul:
         m._session.debugger.create_target.return_value = mock_target
         m.start("/tmp/a.out")
 
-        steps = [AgentStep(step_number=1, action="done", observation="found it")]
-        with patch("morgul.core.session.AgentHandler") as mock_cls:
-            mock_h = AsyncMock()
-            mock_h.run = AsyncMock(return_value=steps)
-            mock_cls.return_value = mock_h
+        from morgul.core.types.repl import REPLCodeBlock, REPLIteration, REPLResult
+
+        mock_repl_result = REPLResult(
+            result="found it",
+            steps=1,
+            code_blocks_executed=1,
+            iterations=[
+                REPLIteration(step_number=1, llm_response="ok", code_blocks=[
+                    REPLCodeBlock(code="DONE('found it')\n", stdout="[DONE]\n"),
+                ]),
+            ],
+        )
+        with patch("morgul.core.session.REPLAgent") as mock_cls:
+            mock_agent = AsyncMock()
+            mock_agent.run = AsyncMock(return_value=mock_repl_result)
+            mock_cls.return_value = mock_agent
             result = await m.agent("hunt vulns", max_steps=3)
         assert len(result) == 1

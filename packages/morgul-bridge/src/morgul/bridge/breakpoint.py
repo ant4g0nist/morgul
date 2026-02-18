@@ -9,6 +9,19 @@ try:
 except ImportError:
     lldb = None  # type: ignore[assignment]
 
+# Module-level registry: maps Breakpoint object id → callback callable.
+_BP_CALLBACKS: Dict[int, Callable[..., bool]] = {}
+
+
+def _invoke_bp_callback(
+    bp_id: int, frame: Any, bp_loc: Any, extra_args: Any, internal_dict: Any
+) -> bool:
+    """Dispatch function called by LLDB's script callback body."""
+    cb = _BP_CALLBACKS.get(bp_id)
+    if cb is None:
+        return True  # stop by default if callback was GC'd
+    return cb(frame, bp_loc, extra_args)
+
 
 class Breakpoint:
     """High-level wrapper around ``lldb.SBBreakpoint``.
@@ -92,31 +105,21 @@ class Breakpoint:
     def set_callback(self, callback: Callable[..., bool]) -> None:
         """Attach a Python callback to this breakpoint.
 
-        The callback receives ``(frame, bp_loc, dict)`` and should return
-        ``True`` to stop or ``False`` to auto-continue.
+        The callback receives ``(frame, bp_loc, extra_args)`` and should
+        return ``True`` to stop or ``False`` to auto-continue.
 
         Parameters
         ----------
         callback:
             A callable with the LLDB breakpoint callback signature.
         """
-        self._sb.SetScriptCallbackFunction("")  # clear any existing
-        # LLDB supports setting a Python callback directly
-        self._sb.SetScriptCallbackBody("")
-        # Use the internal API for a true Python callback
-        self._sb.SetScriptCallbackFunction("")
-        # The most reliable approach is to use the SBBreakpoint callback:
         self._callback = callback  # prevent GC
 
-        def _wrapper(frame: Any, bp_loc: Any, extra: Any) -> bool:
-            return callback(frame, bp_loc, extra)
+        # Register in the module-level registry so the script body can find it.
+        _BP_CALLBACKS[id(self)] = callback
 
-        self._sb.SetScriptCallbackBody("")
-        # Direct Python callback via the C++ bridge
-        import lldb
-
+        # Clear any previous script callback, then install the dispatch body.
         self._sb.SetScriptCallbackFunction("")
-        # Fallback: store and invoke manually via a command
         self._sb.SetScriptCallbackBody(
             f"import sys; sys.modules['{__name__}']._invoke_bp_callback("
             f"{id(self)}, frame, bp_loc, extra_args, internal_dict)"
@@ -135,6 +138,7 @@ class Breakpoint:
 
         After calling this method, the breakpoint object should not be reused.
         """
+        _BP_CALLBACKS.pop(id(self), None)
         target = self._sb.GetTarget()
         if target and target.IsValid():
             target.BreakpointDelete(self._sb.GetID())

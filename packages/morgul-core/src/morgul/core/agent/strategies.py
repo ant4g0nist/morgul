@@ -8,6 +8,7 @@ from morgul.core.translate.prompts import STRATEGY_DESCRIPTIONS
 
 
 class AgentStrategy(str, Enum):
+    REPL = "repl"
     DEPTH_FIRST = "depth-first"
     BREADTH_FIRST = "breadth-first"
     HYPOTHESIS_DRIVEN = "hypothesis-driven"

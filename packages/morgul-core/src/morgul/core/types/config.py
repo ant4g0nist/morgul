@@ -37,7 +37,7 @@ class AgentConfig(BaseModel):
 
     max_steps: int = 50
     timeout: float = 300.0
-    strategy: str = "depth-first"
+    strategy: str = "repl"
 
     # Optional agentic backend (SDK-managed tool loop).
     # Set to "claude-code" or "codex" to use an agentic backend for agent().

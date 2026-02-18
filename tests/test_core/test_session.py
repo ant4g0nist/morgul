@@ -182,23 +182,51 @@ class TestAsyncSession:
         assert isinstance(result, SampleModel)
         assert result.value == 42
 
-    async def test_agent(self, started_session):
+    async def test_agent_tool_use(self, started_session):
+        """Explicit strategy='depth-first' routes to AgentHandler."""
         steps = [AgentStep(step_number=1, action="done", observation="found")]
         with patch("morgul.core.session.AgentHandler") as mock_cls:
             mock_h = AsyncMock()
             mock_h.run = AsyncMock(return_value=steps)
             mock_cls.return_value = mock_h
-            result = await started_session.agent("find bugs")
+            result = await started_session.agent("find bugs", strategy="depth-first")
         assert len(result) == 1
         assert result[0].action == "done"
 
-    async def test_agent_uses_config_defaults(self, started_session):
+    async def test_agent_default_uses_repl(self, started_session):
+        """Default strategy is 'repl', routing to REPLAgent."""
+        from morgul.core.types.repl import REPLCodeBlock, REPLIteration, REPLResult
+
+        mock_repl_result = REPLResult(
+            result="found bugs",
+            steps=1,
+            code_blocks_executed=1,
+            iterations=[
+                REPLIteration(step_number=1, llm_response="ok", code_blocks=[
+                    REPLCodeBlock(code="DONE('found bugs')\n", stdout="[DONE]\n"),
+                ]),
+            ],
+        )
+        with patch("morgul.core.session.REPLAgent") as mock_cls:
+            mock_agent = AsyncMock()
+            mock_agent.run = AsyncMock(return_value=mock_repl_result)
+            mock_cls.return_value = mock_agent
+            result = await started_session.agent("task")
+            # Should have used config defaults for max_iterations
+            _, kwargs = mock_cls.call_args
+            assert kwargs["max_iterations"] == 50
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0].action == "repl_exec"
+
+    async def test_agent_tool_use_config_defaults(self, started_session):
+        """Tool-use path uses config defaults for max_steps and timeout."""
         steps = []
         with patch("morgul.core.session.AgentHandler") as mock_cls:
             mock_h = AsyncMock()
             mock_h.run = AsyncMock(return_value=steps)
             mock_cls.return_value = mock_h
-            await started_session.agent("task")
+            await started_session.agent("task", strategy="depth-first")
             # Should have used config defaults (max_steps=50, timeout=300)
             _, kwargs = mock_cls.call_args
             assert kwargs["max_steps"] == 50

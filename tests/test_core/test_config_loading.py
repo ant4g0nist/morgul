@@ -106,7 +106,7 @@ class TestMorgulConfigConstruction:
         assert config.llm.base_url is None
         assert config.cache.enabled is True
         assert config.healing.enabled is True
-        assert config.agent.strategy == "depth-first"
+        assert config.agent.strategy == "repl"
         assert config.verbose is False
         assert config.self_heal is True
 
@@ -124,4 +124,4 @@ class TestMorgulConfigConstruction:
         but also won't set 'strategy'."""
         config = AgentConfig(default_strategy="hypothesis-driven")  # type: ignore[call-arg]
         # The actual 'strategy' field retains its default
-        assert config.strategy == "depth-first"
+        assert config.strategy == "repl"

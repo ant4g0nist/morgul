@@ -506,8 +506,6 @@ Features under consideration for future releases — none of these exist in the 
 
 Morgul wouldn't exist without these projects:
 
-- **[lisa.py](https://github.com/ant4g0nist/lisa.py)** — MCP integration for LLDB by [@ant4g0nist](https://github.com/ant4g0nist). The bridge that makes this possible.
-- **[Polar](https://github.com/ant4g0nist/polar)** — LLM plugin for LLDB by [@ant4g0nist](https://github.com/ant4g0nist). The proof that this idea works.
 - **[Stagehand](https://github.com/browserbase/stagehand)** — Browserbase's AI browser automation framework. The architectural blueprint.
 - **[LLDB](https://lldb.llvm.org/)** — The LLVM debugger. The engine under the hood.
 

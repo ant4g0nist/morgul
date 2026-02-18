@@ -17,6 +17,7 @@ class ExecutionEventType(Enum):
     REPL_STEP = "repl_step"
     LLM_RESPONSE = "llm_response"
     CACHE_HIT = "cache_hit"
+    LLM_SUB_QUERY = "llm_sub_query"
 
 
 class ExecutionEvent:

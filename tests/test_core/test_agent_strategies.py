@@ -7,11 +7,13 @@ from morgul.core.agent.strategies import AgentStrategy, get_strategy_description
 
 class TestAgentStrategy:
     def test_enum_values(self):
+        assert AgentStrategy.REPL.value == "repl"
         assert AgentStrategy.DEPTH_FIRST.value == "depth-first"
         assert AgentStrategy.BREADTH_FIRST.value == "breadth-first"
         assert AgentStrategy.HYPOTHESIS_DRIVEN.value == "hypothesis-driven"
 
     def test_enum_from_string(self):
+        assert AgentStrategy("repl") == AgentStrategy.REPL
         assert AgentStrategy("depth-first") == AgentStrategy.DEPTH_FIRST
 
     def test_get_strategy_description(self):
