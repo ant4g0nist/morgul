@@ -409,8 +409,8 @@ with Morgul(config=config) as morgul:
     ┌─────────────────────────────────────────┐
     │              Morgul Bridge               │
     │                                         │
-    │         MCP Server (lisa.py)             │
-    │            LLDB Python API              │
+    │            LLDB Python API               │
+    │         (process, target, frame, …)     │
     └────────────────┬────────────────────────┘
                      │
                      ▼
@@ -429,7 +429,7 @@ with Morgul(config=config) as morgul:
 
 **Cache Layer** — Content-addressed cache of analysis results. Keyed on instruction + context content (not addresses), so ASLR and relocation don't invalidate results.
 
-**Morgul Bridge** — The low-level interface to the debugger. Built on [lisa.py](https://github.com/ant4g0nist/lisa.py)'s MCP server. Exposes structured tool calls that the upper layers consume.
+**Morgul Bridge** — The low-level interface to the debugger. Wraps the LLDB Python API directly, exposing structured objects (`process`, `target`, `frame`, `thread`, `debugger`) and memory utilities that the upper layers consume.
 
 ---
 
@@ -510,7 +510,7 @@ Features under consideration for future releases — none of these exist in the 
 
 Morgul wouldn't exist without these projects:
 
-- **[lisa.py](https://github.com/ant4g0nist/lisa.py)** — MCP integration for LLDB by [@ant4g0nist](https://github.com/ant4g0nist). The bridge that makes this possible.
+- **[lisa.py](https://github.com/ant4g0nist/lisa.py)** — MCP integration for LLDB by [@ant4g0nist](https://github.com/ant4g0nist). The inspiration for Morgul's bridge design.
 - **[Polar](https://github.com/ant4g0nist/polar)** — LLM plugin for LLDB by [@ant4g0nist](https://github.com/ant4g0nist). The proof that this idea works.
 - **[Stagehand](https://github.com/browserbase/stagehand)** — Browserbase's AI browser automation framework. The architectural blueprint.
 - **[LLDB](https://lldb.llvm.org/)** — The LLVM debugger. The engine under the hood.
