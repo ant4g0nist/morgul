@@ -40,6 +40,7 @@ class AsyncSession:
         self._visible_display = None
         self._web_display = None
         self._execution_callback = execution_callback
+        self._persistent_repl: Optional[REPLAgent] = None
 
         # If dashboard_port is set and no custom callback, create a WebDisplay
         if config.dashboard_port is not None and execution_callback is None:
@@ -163,17 +164,33 @@ class AsyncSession:
     async def agent(
         self,
         task: str,
-        strategy: str = "depth-first",
+        strategy: str = "repl",
         max_steps: Optional[int] = None,
         timeout: Optional[float] = None,
+        tools: Optional[dict] = None,
+        persistent: bool = False,
     ) -> List[AgentStep]:
         """Run the autonomous agent on a task.
 
-        If ``config.agent.agentic_provider`` is set (e.g. "claude-code" or "codex"),
-        delegates to an SDK-managed agentic backend. Otherwise falls through to the
-        existing AgentHandler with manual tool loop.
+        By default uses the REPL strategy which delegates to ``REPLAgent``.
+        The ``"depth-first"``, ``"breadth-first"``, and ``"hypothesis-driven"``
+        strategies use the tool-use ``AgentHandler``.  If
+        ``config.agent.agentic_provider`` is set, delegates to an SDK-managed
+        agentic backend instead.
         """
         agent_cfg = self.config.agent
+        effective_strategy = strategy or agent_cfg.strategy
+
+        # ── REPL path (default) ───────────────────────────────────────
+        if effective_strategy == "repl":
+            max_iter = max_steps or agent_cfg.max_steps
+            repl_result = await self.repl_agent(
+                task,
+                max_iterations=max_iter,
+                tools=tools,
+                persistent=persistent,
+            )
+            return self._repl_result_to_steps(repl_result)
 
         # ── Agentic backend path ──────────────────────────────────────
         if agent_cfg.agentic_provider:
@@ -240,12 +257,61 @@ class AsyncSession:
         )
         return await handler.run(task)
 
+    def _repl_result_to_steps(self, repl_result: REPLResult) -> List[AgentStep]:
+        """Convert REPLResult into List[AgentStep] for API compatibility."""
+        steps = []
+        for iteration in repl_result.iterations:
+            blocks_summary = []
+            for block in iteration.code_blocks:
+                entry = f"```python\n{block.code}```"
+                if block.stdout.strip():
+                    entry += f"\nstdout: {block.stdout[:500]}"
+                if block.stderr.strip():
+                    entry += f"\nstderr: {block.stderr[:500]}"
+                blocks_summary.append(entry)
+
+            steps.append(AgentStep(
+                step_number=iteration.step_number,
+                action="repl_exec",
+                observation="\n".join(blocks_summary),
+                reasoning=iteration.llm_response[:1000],
+            ))
+
+        if not steps:
+            steps.append(AgentStep(
+                step_number=1,
+                action="done",
+                observation=repl_result.result,
+                reasoning=repl_result.result,
+            ))
+
+        return steps
+
     async def repl_agent(
         self,
         task: str,
         max_iterations: int = 30,
+        log_path: Optional[str] = None,
+        tools: Optional[dict] = None,
+        persistent: bool = False,
     ) -> REPLResult:
-        """Run an RLM-style REPL agent with LLDB bridge access."""
+        """Run an RLM REPL agent with LLDB bridge access."""
+        if persistent:
+            if self._persistent_repl is None:
+                self._persistent_repl = REPLAgent(
+                    llm_client=self.llm_client,
+                    debugger=self.debugger,
+                    target=self.target,
+                    process=self.process,
+                    max_iterations=max_iterations,
+                    execution_callback=self._execution_callback,
+                    log_path=log_path,
+                    tools=tools,
+                    persistent=True,
+                )
+            return await self._persistent_repl.run(task)
+
+        # Non-persistent: fresh agent each time (existing behavior)
         agent = REPLAgent(
             llm_client=self.llm_client,
             debugger=self.debugger,
@@ -253,6 +319,8 @@ class AsyncSession:
             process=self.process,
             max_iterations=max_iterations,
             execution_callback=self._execution_callback,
+            log_path=log_path,
+            tools=tools,
         )
         return await agent.run(task)
 
@@ -268,6 +336,7 @@ class AsyncSession:
 
     def end(self) -> None:
         """End the session and clean up."""
+        self._persistent_repl = None
         if self._web_display is not None:
             self._web_display.stop()
             # Don't set to None — wait_for_dashboard() may be called after
@@ -349,21 +418,32 @@ class Session:
     def agent(
         self,
         task: str,
-        strategy: str = "depth-first",
+        strategy: str = "repl",
         max_steps: Optional[int] = None,
         timeout: Optional[float] = None,
+        tools: Optional[dict] = None,
+        persistent: bool = False,
     ) -> List[AgentStep]:
         return self._run(
-            self._async_session.agent(task, strategy, max_steps, timeout)
+            self._async_session.agent(
+                task, strategy, max_steps, timeout,
+                tools=tools, persistent=persistent,
+            )
         )
 
     def repl_agent(
         self,
         task: str,
         max_iterations: int = 30,
+        log_path: Optional[str] = None,
+        tools: Optional[dict] = None,
+        persistent: bool = False,
     ) -> REPLResult:
         return self._run(
-            self._async_session.repl_agent(task, max_iterations)
+            self._async_session.repl_agent(
+                task, max_iterations, log_path=log_path,
+                tools=tools, persistent=persistent,
+            )
         )
 
     def wait_for_dashboard(self) -> None:

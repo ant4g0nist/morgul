@@ -85,20 +85,31 @@ class Morgul:
     def agent(
         self,
         task: str,
-        strategy: str = "depth-first",
+        strategy: str = "repl",
         max_steps: Optional[int] = None,
         timeout: Optional[float] = None,
+        tools: Optional[dict] = None,
+        persistent: bool = False,
     ) -> List[AgentStep]:
         """Run the autonomous agent on a task."""
-        return self._session.agent(task, strategy, max_steps, timeout)
+        return self._session.agent(
+            task, strategy, max_steps, timeout,
+            tools=tools, persistent=persistent,
+        )
 
     def repl_agent(
         self,
         task: str,
         max_iterations: int = 30,
+        log_path: Optional[str] = None,
+        tools: Optional[dict] = None,
+        persistent: bool = False,
     ) -> REPLResult:
-        """Run an RLM-style REPL agent with LLDB bridge access."""
-        return self._session.repl_agent(task, max_iterations)
+        """Run an RLM REPL agent with LLDB bridge access."""
+        return self._session.repl_agent(
+            task, max_iterations, log_path=log_path,
+            tools=tools, persistent=persistent,
+        )
 
     def wait_for_dashboard(self) -> None:
         """Block until Ctrl+C, keeping the web dashboard alive for browsing.
@@ -173,20 +184,31 @@ class AsyncMorgul:
     async def agent(
         self,
         task: str,
-        strategy: str = "depth-first",
+        strategy: str = "repl",
         max_steps: Optional[int] = None,
         timeout: Optional[float] = None,
+        tools: Optional[dict] = None,
+        persistent: bool = False,
     ) -> List[AgentStep]:
         """Run the autonomous agent on a task."""
-        return await self._session.agent(task, strategy, max_steps, timeout)
+        return await self._session.agent(
+            task, strategy, max_steps, timeout,
+            tools=tools, persistent=persistent,
+        )
 
     async def repl_agent(
         self,
         task: str,
         max_iterations: int = 30,
+        log_path: Optional[str] = None,
+        tools: Optional[dict] = None,
+        persistent: bool = False,
     ) -> REPLResult:
-        """Run an RLM-style REPL agent with LLDB bridge access."""
-        return await self._session.repl_agent(task, max_iterations)
+        """Run an RLM REPL agent with LLDB bridge access."""
+        return await self._session.repl_agent(
+            task, max_iterations, log_path=log_path,
+            tools=tools, persistent=persistent,
+        )
 
     def wait_for_dashboard(self) -> None:
         """Block until Ctrl+C, keeping the web dashboard alive for browsing."""
